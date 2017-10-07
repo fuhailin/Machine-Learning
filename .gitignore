@@ -42,3 +42,9 @@ Network Trash Folder
 Temporary Items
 .apdisk
 .ipynb_checkpoints/
+__pycache__/
+Kaggle/Zillow Prize/submission/
+Kaggle/Zillow Prize/input/
+Kaggle/Zillow Prize/.idea/
+Kaggle/KKBox's Music Recommendation Challenge/input/
+Kaggle/imba-master/.vs/
