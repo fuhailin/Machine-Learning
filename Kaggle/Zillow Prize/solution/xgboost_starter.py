@@ -1,13 +1,31 @@
+import gc
+
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-import gc
 
 print('Loading data ...')
+'''
+properties2016 = pd.read_csv('../input/properties_2016.csv', low_memory=False)
+properties2017 = pd.read_csv('../input/properties_2017.csv', low_memory=False)
+train2016 = pd.read_csv('../input/train_2016_v2.csv')
+train2017 = pd.read_csv('../input/train_2017.csv')
 
-train = pd.read_csv('data/train_2016_v2.csv')
-prop = pd.read_csv('data/properties_2016.csv')
-sample = pd.read_csv('data/sample_submission.csv')
+# sample_submission = pd.read_csv('../input/sample_submission.csv', low_memory=False)
+train2016 = pd.merge(train2016, properties2016, how='left', on='parcelid')
+train2017 = pd.merge(train2017, properties2017, how='left', on='parcelid')
+'''
+# train_2017 = pd.read_csv('../input/train_2017.csv', parse_dates=["transactiondate"])
+train = pd.read_csv('../input/train_2016_v2.csv', parse_dates=["transactiondate"])
+# train = pd.concat([train_2016, train_2017])
+# del train_2016, train_2017;
+gc.collect()
+prop = pd.read_csv('../input/properties_2016.csv', low_memory=False)
+# properties2017 = pd.read_csv('../input/properties_2017.csv', low_memory=False)
+# prop = pd.concat([properties2016, properties2017])
+# del properties2016, properties2017;
+gc.collect()
+sample = pd.read_csv('../input/sample_submission.csv', low_memory=False)
 
 print('Binding to float32')
 
@@ -19,13 +37,14 @@ print('Creating training set ...')
 
 df_train = train.merge(prop, how='left', on='parcelid')
 
-x_train = df_train.drop(['parcelid', 'logerror', 'transactiondate', 'propertyzoningdesc', 'propertycountylandusecode'], axis=1)
+x_train = df_train.drop(['parcelid', 'logerror', 'transactiondate', 'propertyzoningdesc', 'propertycountylandusecode'],
+                        axis=1)  # XGboost is good at dealing with numbers but definitely not good when dealing with string. So the solution is neither we drop them or transform them.
 y_train = df_train['logerror'].values
 print(x_train.shape, y_train.shape)
 
 train_columns = x_train.columns
 
-for c in x_train.dtypes[x_train.dtypes == object].index.values:
+for c in x_train.dtypes[x_train.dtypes == object].index.values:  # The columns which are "object" types have NaN values and True values. I he's converting the NaNs to False for easier processing.
     x_train[c] = (x_train[c] == True)
 
 del df_train;
@@ -83,9 +102,12 @@ p_test = clf.predict(d_test)
 del d_test;
 gc.collect()
 
-sub = pd.read_csv('data/sample_submission.csv')
+sub = pd.read_csv('../input/sample_submission.csv')
+print(p_test.shape, sub.shape)
 for c in sub.columns[sub.columns != 'ParcelId']:
     sub[c] = p_test
 
+from datetime import datetime
+
 print('Writing csv ...')
-sub.to_csv('data/xgb_starter.csv.gz', index=False, float_format='%.4g', compression='gzip')  # Thanks to @inversion
+sub.to_csv('../submission/xgb_starter{}.csv.gz'.format(datetime.now().strftime('%Y%m%d_%H%M%S')), index=False, float_format='%.4g', compression='gzip')  # Thanks to @inversion
